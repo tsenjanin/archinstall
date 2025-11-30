@@ -257,14 +257,14 @@ configure_aur_helpers() {
     echo "Configuring AUR helpers..."
     
     arch-chroot /mnt /bin/bash <<EOF
-...
-    sudo -u $username bash <<EOC
+
+sudo -u $username bash <<'EOC'
 cd ~
 git clone https://aur.archlinux.org/yay.git
 cd yay
 makepkg -sirc --noconfirm
 EOC
-...
+
 EOF
 }
 
