@@ -16,16 +16,24 @@ set -e
 # Variables - ((Customize these before running the script))
 #
 ##################################################################
-wifi_password=""                # Wi-Fi password (if needed)
-wifi_connection_name=""         # Wi-Fi connection name (SSID - if needed)
-wifi_station="wlan0"            # Wi-Fi station interface (default: wlan0, use iwctl to check)
-hostname=""                     # Desired hostname
-username=""                     # Desired username
-keymap="de-latin1"              # Keyboard layout
-locale="en_US.UTF-8 UTF-8"      # Locale to generate
-locale_conf="en_US.UTF-8"       # Locale configuration
-timezone="Europe/Zagreb"        # Timezone
-device=""                       # Installation disk (e.g., /dev/sda)
+wifi_password=""                 # Wi-Fi password (if needed)
+wifi_connection_name=""          # Wi-Fi connection name (SSID - if needed)
+wifi_station="wlan0"             # Wi-Fi station interface (default: wlan0, use iwctl to check)
+hostname=""                      # Desired hostname
+username=""                      # Desired username
+keymap="de-latin1"               # Keyboard layout
+locale="en_US.UTF-8 UTF-8"       # Locale to generate
+locale_conf="en_US.UTF-8"        # Locale configuration
+timezone="Europe/Zagreb"         # Timezone
+device=""                        # Installation disk (e.g., /dev/sda)
+boot_begin="1MiB"                # Boot partition begin (Customize if needed)
+boot_end="1GiB"                  # Boot partition end (Customize if needed)
+swap_begin="1GiB"                # Swap partition begin (Customize if needed)
+swap_end="16GiB"                 # Swap partition end (Customize if needed)
+root_begin="16GiB"               # Root partition begin (Customize if needed)
+root_end="50GiB"                 # Root partition end (Customize if needed)
+home_begin="50GiB"               # Home partition begin (Customize if needed)
+home_end="100%"                  # Home partition end (Customize if needed)
 
 ##################################################################
 #
@@ -41,6 +49,7 @@ install() {
     configure_system
     post_installation
     configure_aur_helpers
+    install_aur_packages
     finalize_installation
 
     echo "Installation complete! Please reboot."
@@ -89,10 +98,10 @@ partition_disk() {
     fi
     
     parted -s "$device" mklabel gpt
-    parted -s "$device" mkpart boot fat32 1MiB 1GiB
-    parted -s "$device" mkpart swap linux-swap 1GiB 16GiB
-    parted -s "$device" mkpart root ext4 16GiB 76GiB
-    parted -s "$device" mkpart home ext4 76GiB 100%
+    parted -s "$device" mkpart boot fat32 "$boot_begin" "$boot_end"
+    parted -s "$device" mkpart swap linux-swap "$swap_begin" "$swap_end"
+    parted -s "$device" mkpart root ext4 "$root_begin" "$root_end"
+    parted -s "$device" mkpart home ext4 "$home_begin" "$home_end"
     parted -s "$device" set 1 esp on
     parted -s "$device" set 1 boot on
 
@@ -270,6 +279,25 @@ EOF
 
 ##################################################################
 #
+# Install AUR packages using yay.
+#
+##################################################################
+install_aur_packages() {
+    echo "Installing AUR packages..."
+    
+    arch-chroot /mnt /bin/bash <<EOF
+echo "Installing AUR packages..."
+
+sudo -u $username bash <<'EOC'
+export YAY_NO_CONFIRM=1
+yay -S --noconfirm visual-studio-code-bin rar
+EOC
+
+EOF
+}
+
+##################################################################
+#
 # Finalize installation: unmount partitions and reboot.
 #
 ##################################################################
@@ -277,6 +305,9 @@ finalize_installation() {
     echo "Finalizing installation..."
     
     umount -R /mnt
+
+    echo "Installation finished! System will reboot in 10 seconds..."
+    sleep 10
     reboot
 }
 
