@@ -162,20 +162,20 @@ configure_users() {
     echo "Configuring users..."
     
     arch-chroot /mnt /bin/bash <<EOF
-echo "Configuring network..."
+echo "Configuring hostname..."
 echo "$hostname" > /etc/hostname
 
-echo "Configuring users..."
-
-echo "Set root password:"
-passwd
-
 useradd -m -G wheel,storage,power,video,plugdev -s /bin/bash $username
-
-echo "Set password for user $username:"
-passwd $username
-echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
 EOF
+
+    echo "Configuring users..."
+
+    echo "Set root password:"
+    arch-chroot /mnt passwd
+
+    echo "Set password for user $username:"
+    arch-chroot /mnt passwd "$username"
+    echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
 }
 
 ##################################################################
