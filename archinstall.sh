@@ -142,16 +142,16 @@ generate_fstab() {
 ##################################################################
 configure_locale () {
     arch-chroot /mnt /bin/bash <<EOF
-        echo "Configuring timezone..."
-        ln -sf /usr/share/zoneinfo/$timezone /etc/localtime
-        hwclock --systohc
+echo "Configuring timezone..."
+ln -sf /usr/share/zoneinfo/$timezone /etc/localtime
+hwclock --systohc
 
-        echo "Configuring localization..."
-        echo "$locale" >> /etc/locale.gen
-        locale-gen
-        echo "LANG=$locale_conf" > /etc/locale.conf
-        echo "KEYMAP=$keymap" > /etc/vconsole.conf
-    EOF
+echo "Configuring localization..."
+echo "$locale" >> /etc/locale.gen
+locale-gen
+echo "LANG=$locale_conf" > /etc/locale.conf
+echo "KEYMAP=$keymap" > /etc/vconsole.conf
+EOF
 }
 
 ##################################################################
@@ -163,20 +163,20 @@ configure_users() {
     echo "Configuring users..."
     
     arch-chroot /mnt /bin/bash <<EOF
-        echo "Configuring network..."
-        echo "$hostname" > /etc/hostname
+echo "Configuring network..."
+echo "$hostname" > /etc/hostname
 
-        echo "Configuring users..."
-        
-        echo "Set root password:"
-        passwd
-        
-        useradd -m -G wheel,storage,power,video,plugdev -s /bin/bash $username
+echo "Configuring users..."
 
-        echo "Set password for user $username:"
-        passwd $username
-        echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
-    EOF
+echo "Set root password:"
+passwd
+
+useradd -m -G wheel,storage,power,video,plugdev -s /bin/bash $username
+
+echo "Set password for user $username:"
+passwd $username
+echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
+EOF
 }
 
 ##################################################################
@@ -188,10 +188,10 @@ configure_bootloader() {
     echo "Configuring bootloader..."
     
     arch-chroot /mnt /bin/bash <<EOF
-        echo "Configuring bootloader..."
-        grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
-        grub-mkconfig -o /boot/grub/grub.cfg
-    EOF
+echo "Configuring bootloader..."
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+grub-mkconfig -o /boot/grub/grub.cfg
+EOF
 }
 
 ##################################################################
@@ -203,10 +203,10 @@ enable_services() {
     echo "Enabling services..."
     
     arch-chroot /mnt /bin/bash <<EOF
-        systemctl enable NetworkManager
- 	    systemctl enable bluetooth.service
- 	    systemctl enable firewalld
-    EOF
+systemctl enable NetworkManager
+systemctl enable bluetooth.service
+systemctl enable firewalld
+EOF
 }
 
 ##################################################################
@@ -218,22 +218,22 @@ post_installation() {
     echo "Performing post-installation steps..."
     
     arch-chroot /mnt /bin/bash <<EOF
-        echo "Installing additional packages..."
-        pacman -S --noconfirm plasma-meta kde-system-meta kde-utilities-meta kde-multimedia-meta sddm kdeconnect gwenview
-        systemctl enable sddm.service
+echo "Installing additional packages..."
+pacman -S --noconfirm plasma-meta kde-system-meta kde-utilities-meta kde-multimedia-meta sddm kdeconnect gwenview
+systemctl enable sddm.service
 
-        pacman -S --noconfirm fuse2 git qemu-full libvirt virt-manager java-runtime-common nodejs npm cups cups-pdf ffmpeg gstreamer gst-plugins-base gst-plugins-good gst-libav libreoffice-still rsync power-profiles-daemon exfatprogs btrfs-progs ntfs-3g smartmontools lm_sensors docker docker-buildx docker-compose
+pacman -S --noconfirm fuse2 git qemu-full libvirt virt-manager java-runtime-common nodejs npm cups cups-pdf ffmpeg gstreamer gst-plugins-base gst-plugins-good gst-libav libreoffice-still rsync power-profiles-daemon exfatprogs btrfs-progs ntfs-3g smartmontools lm_sensors docker docker-buildx docker-compose
 
-        systemctl enable libvirtd.socket
-        echo "user = \"$username\"" >> /etc/libvirt/qemu.conf
-        echo "group = \"libvirt\"" >> /etc/libvirt/qemu.conf
+systemctl enable libvirtd.socket
+echo "user = \"$username\"" >> /etc/libvirt/qemu.conf
+echo "group = \"libvirt\"" >> /etc/libvirt/qemu.conf
 
-        systemctl restart libvirtd
-        systemctl enable docker.socket
+systemctl restart libvirtd
+systemctl enable docker.socket
 
-        usermod -a -G libvirt $username
-        usermod -a -G docker $username
-    EOF
+usermod -a -G libvirt $username
+usermod -a -G docker $username
+EOF
 }
 
 finalize_installation() {
