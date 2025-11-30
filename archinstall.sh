@@ -15,8 +15,7 @@ keymap="de-latin1"
 locale="en_US.UTF-8 UTF-8"
 locale_conf="en_US.UTF-8"
 timezone="Europe/Zagreb"
-device=$1
-
+device=""
 
 ##################################################################
 #
@@ -242,3 +241,5 @@ finalize_installation() {
     umount -R /mnt
     reboot
 }
+
+install
