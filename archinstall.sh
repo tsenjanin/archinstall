@@ -165,7 +165,7 @@ configure_users() {
 echo "Configuring hostname..."
 echo "$hostname" > /etc/hostname
 
-useradd -m -G wheel,storage,power,video,plugdev -s /bin/bash $username
+useradd -m -G wheel,storage,power,video -s /bin/bash $username
 EOF
 
     echo "Configuring users..."
