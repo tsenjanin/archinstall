@@ -186,7 +186,9 @@ EOF
 
     echo "Set password for user $username:"
     arch-chroot /mnt passwd "$username"
-    echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
+    arch-chroot /mnt /bin/bash <<EOF
+echo "%wheel ALL=(ALL:ALL) ALL" >> /etc/sudoers
+EOF
 }
 
 ##################################################################
