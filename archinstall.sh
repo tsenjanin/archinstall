@@ -1,21 +1,31 @@
 #!/bin/bash
+
+##################################################################
 # archinstall.sh - A simple Arch Linux installation script
+#
+# Description: Customize variables below and run the script in 
+#              Arch Linux live environment.
+# Usage: 
+#   $ ./archinstall/archinstall.sh
+##################################################################
 
 set -e
 
-# -------------------------------------------------------------
-# Variables & Settings
-# -------------------------------------------------------------
-wifi_password=""
-wifi_connection_name=""
-wifi_station="wlan0"
-hostname="archlinux"
-username=""
-keymap="de-latin1"
-locale="en_US.UTF-8 UTF-8"
-locale_conf="en_US.UTF-8"
-timezone="Europe/Zagreb"
-device=""
+##################################################################
+#
+# Variables - ((Customize these before running the script))
+#
+##################################################################
+wifi_password=""                # Wi-Fi password (if needed)
+wifi_connection_name=""         # Wi-Fi connection name (SSID - if needed)
+wifi_station="wlan0"            # Wi-Fi station interface (default: wlan0, use iwctl to check)
+hostname=""                     # Desired hostname
+username=""                     # Desired username
+keymap="de-latin1"              # Keyboard layout
+locale="en_US.UTF-8 UTF-8"      # Locale to generate
+locale_conf="en_US.UTF-8"       # Locale configuration
+timezone="Europe/Zagreb"        # Timezone
+device=""                       # Installation disk (e.g., /dev/sda)
 
 ##################################################################
 #
@@ -30,6 +40,7 @@ install() {
     install_base_system
     configure_system
     post_installation
+    configure_aur_helpers
     finalize_installation
 
     echo "Installation complete! Please reboot."
@@ -235,6 +246,31 @@ usermod -a -G docker $username
 EOF
 }
 
+##################################################################
+#
+# Configure AUR helpers: Install yay AUR helper.
+#
+##################################################################
+configure_aur_helpers() {
+    echo "Configuring AUR helpers..."
+    
+    arch-chroot /mnt /bin/bash <<EOF
+...
+    sudo -u $username bash <<EOC
+cd ~
+git clone https://aur.archlinux.org/yay.git
+cd yay
+makepkg -sirc --noconfirm
+EOC
+...
+EOF
+}
+
+##################################################################
+#
+# Finalize installation: unmount partitions and reboot.
+#
+##################################################################
 finalize_installation() {
     echo "Finalizing installation..."
     
