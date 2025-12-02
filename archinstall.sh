@@ -126,7 +126,7 @@ partition_disk() {
 install_base_system() {
     echo "Installing base system..."
     
-    pacstrap -K /mnt base linux linux-firmware linux-headers sudo nano amd-ucode intel-ucode firewalld grub efibootmgr networkmanager base-devel sof-firmware bluez bluez-utils
+    pacstrap -K /mnt base linux linux-firmware linux-headers sudo nano amd-ucode intel-ucode firewalld grub efibootmgr networkmanager base-devel sof-firmware bluez bluez-utils man-db man-pages texinfo
 }
 
 ##################################################################
@@ -243,7 +243,7 @@ echo "Installing additional packages..."
 pacman -S --noconfirm plasma-meta kde-system-meta kde-utilities-meta kde-multimedia-meta sddm kdeconnect gwenview
 systemctl enable sddm.service
 
-pacman -S --noconfirm fuse2 git qemu-full libvirt virt-manager java-runtime-common nodejs npm cups cups-pdf ffmpeg gstreamer gst-plugins-base gst-plugins-good gst-libav libreoffice-still rsync power-profiles-daemon exfatprogs btrfs-progs ntfs-3g smartmontools lm_sensors docker docker-buildx docker-compose firefox
+pacman -S --noconfirm fuse2 git qemu-full libvirt virt-manager java-runtime-common nodejs npm cups cups-pdf ffmpeg gstreamer gst-plugins-base gst-plugins-good gst-libav libreoffice-still rsync power-profiles-daemon exfatprogs btrfs-progs ntfs-3g smartmontools lm_sensors docker docker-buildx docker-compose firefox papirus-icon-theme curl wget reflector dnsmasq ovmf openssh
 
 systemctl enable libvirtd.socket
 echo "user = \"$username\"" >> /etc/libvirt/qemu.conf
