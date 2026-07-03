@@ -26,14 +26,11 @@ locale="en_US.UTF-8 UTF-8"       # Locale to generate
 locale_conf="en_US.UTF-8"        # Locale configuration
 timezone="Europe/Zagreb"         # Timezone
 device=""                        # Installation disk (e.g., /dev/sda)
-boot_begin="1MiB"                # Boot partition begin (Customize if needed)
-boot_end="1GiB"                  # Boot partition end (Customize if needed)
-swap_begin="1GiB"                # Swap partition begin (Customize if needed)
-swap_end="16GiB"                 # Swap partition end (Customize if needed)
-root_begin="16GiB"               # Root partition begin (Customize if needed)
-root_end="50GiB"                 # Root partition end (Customize if needed)
-home_begin="50GiB"               # Home partition begin (Customize if needed)
-home_end="100%"                  # Home partition end (Customize if needed)
+swap_mode=""                     # "disk" (partition, supports hibernation) or "zram" - set via prompt
+boot_size_gib=1                  # Boot partition size in GiB
+swap_size_gib=16                 # Swap partition size in GiB (only used when swap_mode="disk")
+root_size_gib=80                 # Root partition size in GiB
+                                 # Home partition takes all remaining space
 
 ##################################################################
 #
@@ -67,14 +64,42 @@ initialize() {
     if [[ -n "$wifi_connection_name" && -n "$wifi_password" ]]; then
         iwctl --passphrase "$wifi_password" station "$wifi_station" connect "$wifi_connection_name"
     fi
-
+ 
     timedatectl
-
+ 
     clear
-
+ 
+    read -p "Enter hostname: " hostname
+    read -p "Enter username: " username
+ 
+    echo "Swap configuration:"
+    echo "  1) Disk-based swap partition (supports hibernation)"
+    echo "  2) zram (compressed RAM swap, no hibernation)"
+    read -p "Choose an option [1/2]: " swap_choice
+    if [[ "$swap_choice" == "2" ]]; then
+        swap_mode="zram"
+    else
+        swap_mode="disk"
+    fi
+ 
+    read -p "Boot partition size in GiB [${boot_size_gib}]: " input
+    boot_size_gib=${input:-$boot_size_gib}
+ 
+    if [[ "$swap_mode" == "disk" ]]; then
+        read -p "Swap partition size in GiB [${swap_size_gib}]: " input
+        swap_size_gib=${input:-$swap_size_gib}
+    fi
+ 
+    read -p "Root partition size in GiB [${root_size_gib}]: " input
+    root_size_gib=${input:-$root_size_gib}
+ 
     echo "Available disks:"
     lsblk
     read -p "Where do you want to install Arch Linux? This cannot be undone! (e.g., /dev/sda): " device
+ 
+    echo "WARNING: This will ERASE ALL DATA on $device"
+    read -p "Type 'yes' to continue: " confirm
+    [[ "$confirm" == "yes" ]] || { echo "Aborted."; exit 1; }
 }
 
 ##################################################################
@@ -97,25 +122,58 @@ partition_disk() {
         partition4="${device}4"
     fi
     
+    boot_start=1
+    boot_end=$((boot_start + boot_size_gib * 1024))
+
+    if [[ "$swap_mode" == "disk" ]]; then
+        swap_start=$boot_end
+        swap_end=$((swap_start + swap_size_gib * 1024))
+        root_start=$swap_end
+    else
+        root_start=$boot_end
+    fi
+
+    root_end=$((root_start + root_size_gib * 1024))
+    home_start=$root_end
+
     parted -s "$device" mklabel gpt
-    parted -s "$device" mkpart boot fat32 "$boot_begin" "$boot_end"
-    parted -s "$device" mkpart swap linux-swap "$swap_begin" "$swap_end"
-    parted -s "$device" mkpart root ext4 "$root_begin" "$root_end"
-    parted -s "$device" mkpart home ext4 "$home_begin" "$home_end"
+    parted -s "$device" mkpart boot fat32 "${boot_start}MiB" "${boot_end}MiB"
+
+    if [[ "$swap_mode" == "disk" ]]; then
+        parted -s "$device" mkpart swap linux-swap "${swap_start}MiB" "${swap_end}MiB"
+        parted -s "$device" mkpart root ext4 "${root_start}MiB" "${root_end}MiB"
+        parted -s "$device" mkpart home ext4 "${home_start}MiB" "100%"
+    else
+        parted -s "$device" mkpart root ext4 "${root_start}MiB" "${root_end}MiB"
+        parted -s "$device" mkpart home ext4 "${home_start}MiB" "100%"
+    fi
+
     parted -s "$device" set 1 esp on
     parted -s "$device" set 1 boot on
 
     mkfs.fat -F 32 "$partition1"
-    mkswap "$partition2"
-    mkfs.ext4 "$partition3"
-    mkfs.ext4 "$partition4"
+
+    if [[ "$swap_mode" == "disk" ]]; then
+        mkswap "$partition2"
+        mkfs.ext4 "$partition3"
+        mkfs.ext4 "$partition4"
+    else
+        mkfs.ext4 "$partition2"
+        mkfs.ext4 "$partition3"
+    fi
 
     echo "Mounting partitions..."
-    
-    mount $partition3 /mnt
-    mount --mkdir $partition1 /mnt/boot
-    mount --mkdir $partition4 /mnt/home
-    swapon $partition2
+
+    if [[ "$swap_mode" == "disk" ]]; then
+        mount $partition3 /mnt
+        mount --mkdir $partition1 /mnt/boot
+        mount --mkdir $partition4 /mnt/home
+        swapon $partition2
+    else
+        mount $partition2 /mnt
+        mount --mkdir $partition1 /mnt/boot
+        mount --mkdir $partition3 /mnt/home
+    fi
 }
 
 ##################################################################
@@ -142,6 +200,10 @@ configure_system() {
     configure_users
     configure_bootloader
     enable_services
+
+    if [[ "$swap_mode" == "zram" ]]; then
+        configure_zram
+    fi
 }
 
 ##################################################################
@@ -227,6 +289,35 @@ enable_services() {
 systemctl enable NetworkManager
 systemctl enable bluetooth.service
 systemctl enable firewalld
+systemctl enable fstrim.timer
+EOF
+}
+
+##################################################################
+#
+# Configure zram as swap (used when swap_mode="zram").
+#
+##################################################################
+configure_zram() {
+    echo "Configuring zram..."
+
+    arch-chroot /mnt /bin/bash <<EOF
+pacman -S --noconfirm zram-generator
+
+cat <<EOC > /etc/systemd/zram-generator.conf
+[zram0]
+zram-size = ram / 2
+compression-algorithm = zstd
+EOC
+
+systemctl daemon-reload
+systemctl enable systemd-zram-setup@zram0
+
+cat <<EOC > /etc/sysctl.d/99-vm-zram-parameters.conf
+vm.swappiness = 180
+vm.watermark_boost_factor = 0
+vm.watermark_scale_factor = 125
+EOC
 EOF
 }
 
