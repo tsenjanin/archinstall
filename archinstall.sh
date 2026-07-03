@@ -331,10 +331,10 @@ post_installation() {
     
     arch-chroot /mnt /bin/bash <<EOF
 echo "Installing additional packages..."
-pacman -S --noconfirm plasma-meta kde-system-meta kde-utilities-meta kde-multimedia-meta sddm kdeconnect gwenview
+pacman -S --noconfirm plasma-meta kde-system-meta kde-utilities-meta kde-multimedia-meta sddm kdeconnect gwenview fprintd
 systemctl enable sddm.service
 
-pacman -S --noconfirm fuse2 git qemu-full libvirt virt-manager java-runtime-common nodejs npm cups cups-pdf ffmpeg gstreamer gst-plugins-base gst-plugins-good gst-libav libreoffice-still rsync power-profiles-daemon exfatprogs btrfs-progs ntfs-3g smartmontools lm_sensors docker docker-buildx docker-compose firefox papirus-icon-theme curl wget reflector dnsmasq ovmf openssh proton-vpn-gtk-app qbittorrent fprintd
+pacman -S --noconfirm fuse2 git qemu-full libvirt virt-manager java-runtime-common nodejs npm cups cups-pdf ffmpeg gstreamer gst-plugins-base gst-plugins-good gst-libav libreoffice-still rsync power-profiles-daemon exfatprogs btrfs-progs ntfs-3g smartmontools lm_sensors docker docker-buildx docker-compose firefox papirus-icon-theme curl wget reflector dnsmasq ovmf openssh proton-vpn-gtk-app qbittorrent
 
 systemctl enable libvirtd.socket
 echo "user = \"$username\"" >> /etc/libvirt/qemu.conf
